@@ -16,6 +16,7 @@ export const defaultSettings: AppSettings = {
   launchOnStartup: false,
   sourceLanguage: 'auto',
   targetLanguage: '中文',
+  theme: 'auto',
   activeProviderId: '',
   providers: []
 };

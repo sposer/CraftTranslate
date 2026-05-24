@@ -6,6 +6,7 @@ mod selection;
 mod tray;
 mod window;
 
+use tauri::Manager;
 use tauri_plugin_autostart::MacosLauncher;
 
 pub fn run() {
@@ -29,6 +30,18 @@ pub fn run() {
         ])
         .setup(|app| {
             let handle = app.handle().clone();
+
+            // Prevent main window from being destroyed on close – hide instead
+            if let Some(window) = app.get_webview_window("main") {
+                let w: tauri::WebviewWindow = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        w.hide().ok();
+                        api.prevent_close();
+                    }
+                });
+            }
+
             if let Err(err) = hotkey::register_hotkey(&handle, hotkey::DEFAULT_HOTKEY) {
                 eprintln!("failed to register default shortcut: {err}");
             }

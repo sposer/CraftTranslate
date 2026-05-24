@@ -4,18 +4,15 @@ use tauri::{
     AppHandle,
 };
 
-use crate::{hotkey::trigger_translation, window::show_settings};
+use crate::window::toggle_settings;
 
 const SHOW_SETTINGS_ID: &str = "show-settings";
-const TRANSLATE_SELECTION_ID: &str = "translate-selection";
 const QUIT_ID: &str = "quit";
 
 pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
-    let show_settings_item = MenuItem::with_id(app, SHOW_SETTINGS_ID, "打开设置", true, None::<&str>)?;
-    let translate_selection =
-        MenuItem::with_id(app, TRANSLATE_SELECTION_ID, "翻译当前选区", true, None::<&str>)?;
-    let quit = MenuItem::with_id(app, QUIT_ID, "退出 CraftTranslate", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&show_settings_item, &translate_selection, &quit])?;
+    let show_settings_item = MenuItem::with_id(app, SHOW_SETTINGS_ID, "设置", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, QUIT_ID, "退出", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&show_settings_item, &quit])?;
 
     let mut builder = TrayIconBuilder::with_id("main-tray")
         .tooltip("CraftTranslate")
@@ -23,15 +20,14 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
         .show_menu_on_left_click(false)
         .on_menu_event(|app, event| match event.id().as_ref() {
             SHOW_SETTINGS_ID => {
-                let _ = show_settings(app);
+                let _ = toggle_settings(app);
             }
-            TRANSLATE_SELECTION_ID => trigger_translation(app.clone()),
             QUIT_ID => app.exit(0),
             _ => {}
         })
         .on_tray_icon_event(|tray, event| {
             if should_open_settings(&event) {
-                let _ = show_settings(tray.app_handle());
+                let _ = toggle_settings(tray.app_handle());
             }
         });
 

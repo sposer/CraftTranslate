@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { currentMonitor, getCurrentWindow } from '@tauri-apps/api/window';
 import { createProvider, enabledProvider, providerTemplates } from './providers/catalog';
 import { translateText } from './providers/translator';
 import { ProviderConfig, ProviderKind } from './providers/types';
@@ -49,6 +49,7 @@ init().catch((error) => {
 
 async function init() {
   settings = ensureProvider(await loadSettings());
+  await applyTheme();
   if (location.hash === '#/popup') {
     await listen<SelectionPayload>('selection-ready', async (event) => {
       selectionPayload = event.payload;
@@ -138,6 +139,7 @@ function renderSettings() {
         <div class="sections">
           ${renderHotkeyRow()}
           ${renderLanguageRow()}
+          ${renderThemeRow()}
           ${renderProviderSection()}
         </div>
       </form>
@@ -201,6 +203,25 @@ function renderLanguageRow(): string {
             <input name="launchOnStartup" type="checkbox" ${settings.launchOnStartup ? 'checked' : ''} />
             <span class="toggle-knob"></span>
           </label>
+        </div>
+      </div>
+    </section>`;
+}
+
+function renderThemeRow(): string {
+  return `
+    <section class="section">
+      <div class="row">
+        <div class="row-main">
+          <div class="title">主题</div>
+          <div class="sub">自动跟随系统，或手动选择深色/浅色</div>
+        </div>
+        <div class="row-ctl">
+          <select class="text-in" name="theme" style="width:140px">
+            <option value="auto" ${settings.theme === 'auto' ? 'selected' : ''}>自动</option>
+            <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>浅色</option>
+            <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>深色</option>
+          </select>
         </div>
       </div>
     </section>`;
@@ -299,6 +320,13 @@ function bindSettingsEvents() {
     settings = { ...settings, launchOnStartup: enabled };
     invoke('set_autostart', { enabled }).catch(() => {});
     autoSave(enabled ? '已开启开机自启' : '已关闭开机自启');
+  });
+
+  document.querySelector<HTMLSelectElement>('[name="theme"]')?.addEventListener('change', async (event) => {
+    const value = (event.currentTarget as HTMLSelectElement).value as AppSettings['theme'];
+    settings = { ...settings, theme: value };
+    await applyTheme();
+    autoSave('主题已更新');
   });
 
   document.querySelectorAll<HTMLButtonElement>('[data-provider-id]').forEach((button) => {
@@ -526,6 +554,7 @@ async function removeProvider(providerId: string) {
 // ─── Popup ────────────────────────────────────────────────────
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
+let cursorTrackingTimer: ReturnType<typeof setInterval> | null = null;
 
 async function positionNearCursor() {
   try {
@@ -537,9 +566,23 @@ async function positionNearCursor() {
   }
 }
 
+async function applyTheme() {
+  try {
+    await getCurrentWindow().setTheme(settings.theme === 'auto' ? null : settings.theme);
+  } catch (err) {
+    console.error('applyTheme failed:', err);
+  }
+}
+
 async function renderLoadingIndicator() {
+  // Sync theme in case user changed it from settings while popup was hidden
+  settings = ensureProvider(await loadSettings());
+  await applyTheme();
+
   // Hide first to prevent flash when re-triggering while previous popup is visible
   try { await getCurrentWindow().hide(); } catch { /* ignore */ }
+
+  clearCursorTracking();
 
   document.body.style.background = 'transparent';
   document.documentElement.style.overflow = 'hidden';
@@ -562,9 +605,13 @@ async function renderLoadingIndicator() {
   } catch (err) {
     console.error('renderLoadingIndicator failed:', err);
   }
+
+  cursorTrackingTimer = setInterval(() => positionNearCursor(), 50);
 }
 
 function renderPopupResult() {
+  clearCursorTracking();
+
   const sourceLabel = LANGUAGES.find((l) => l.value === settings.sourceLanguage)?.label ?? settings.sourceLanguage;
 
   document.body.style.background = 'transparent';
@@ -643,8 +690,22 @@ async function fitPopupSize() {
   const card = document.querySelector<HTMLDivElement>('.popup-card');
   if (!card) return;
 
-  const MAX_W = 720;
-  const MAX_H = 640;
+  // Max dimensions based on monitor size
+  let MAX_W = 960;
+  let MAX_H = 640;
+  try {
+    const monitor = await currentMonitor();
+    if (monitor) {
+      MAX_W = Math.max(400, Math.round(monitor.size.width * 0.5));
+      MAX_H = Math.round(monitor.size.height * 0.6);
+    }
+  } catch { /* fall back to defaults */ }
+
+  // Expand to max first so the card can grow to its natural width for measurement
+  try {
+    const { PhysicalSize } = await import('@tauri-apps/api/dpi');
+    await getCurrentWindow().setSize(new PhysicalSize(MAX_W, MAX_H));
+  } catch { /* ignore */ }
 
   const prevOverflow = card.style.overflow;
   const prevMinHeight = card.style.minHeight;
@@ -702,8 +763,16 @@ function clearCloseTimer() {
   }
 }
 
+function clearCursorTracking() {
+  if (cursorTrackingTimer) {
+    clearInterval(cursorTrackingTimer);
+    cursorTrackingTimer = null;
+  }
+}
+
 function hidePopup() {
   clearCloseTimer();
+  clearCursorTracking();
   document.body.style.background = '';
   document.body.style.borderRadius = '';
   document.body.style.overflow = '';

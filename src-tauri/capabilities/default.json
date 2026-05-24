@@ -22,6 +22,7 @@
     "core:window:allow-hide",
     "core:window:allow-set-size",
     "core:window:allow-cursor-position",
+    "core:window:allow-set-theme",
     {
       "identifier": "http:default",
       "allow": [
