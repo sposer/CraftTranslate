@@ -97,6 +97,16 @@ function renderSettings() {
         </label>
 
         <label>
+          <span>百度 APP ID</span>
+          <input name="appId" value="${escapeAttribute(settings.provider.appId)}" autocomplete="off" />
+        </label>
+
+        <label>
+          <span>百度密钥</span>
+          <input name="secretKey" type="password" value="${escapeAttribute(settings.provider.secretKey)}" autocomplete="off" />
+        </label>
+
+        <label>
           <span>模型</span>
           <input name="model" value="${escapeAttribute(settings.provider.model)}" placeholder="gpt-4o-mini" />
         </label>
@@ -136,6 +146,8 @@ async function handleSettingsSubmit(event: SubmitEvent) {
     id: getFormValue(form, 'providerId') as ProviderKind,
     endpoint: getFormValue(form, 'endpoint'),
     apiKey: getFormValue(form, 'apiKey'),
+    appId: getFormValue(form, 'appId'),
+    secretKey: getFormValue(form, 'secretKey'),
     model: getFormValue(form, 'model')
   });
   const nextSettings: AppSettings = {

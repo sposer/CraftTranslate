@@ -43,7 +43,7 @@ src-tauri/              # Tauri/Rust 后端
 
 - 前端通过 `invoke` 调 Rust 命令，通过 `listen` 接收后端事件，入口在 `src/main.ts:1`。
 - 设置统一走 Tauri store 的 `settings.json`，默认值和归一化在 `src/settings.ts:8`。
-- Provider 配置是结构化对象，默认目录在 `src/providers/catalog.ts:3`，OpenAI 兼容请求构造在 `src/providers/openaiCompatible.ts:3`。
+- Provider 配置是结构化对象，默认目录在 `src/providers/catalog.ts:3`；百度通用翻译签名在 `src/providers/baiduGeneral.ts:34`，OpenAI 兼容请求构造在 `src/providers/openaiCompatible.ts:3`。
 - Rust 后端按系统能力拆模块：选区读取在 `src-tauri/src/selection.rs:8`，弹窗定位在 `src-tauri/src/popup.rs:40`，热键在 `src-tauri/src/hotkey.rs:10`。
 - Tauri capability 新增前端可调用命令时同步更新 `src-tauri/capabilities/default.json`。
 
@@ -53,7 +53,7 @@ src-tauri/              # Tauri/Rust 后端
 - 依赖版本使用最新稳定版；变更前先查公开 registry 或官方文档，不固定到已知旧版本。
 - 前端依赖改动使用 `pnpm`，不要使用 `npm install`。
 - 单元测试按模块就近放到 `__tests__/` 或 Rust 模块内 `mod tests`。
-- 不把真实 API Key、Tauri store 本地配置、构建产物或个人配置提交到仓库。
+- 不把真实 API Key、百度 APP ID/密钥、Tauri store 本地配置、构建产物或个人配置提交到仓库。
 - 开源协议使用 MIT，见 `LICENSE`。
 
 ## Permissions

@@ -9,7 +9,9 @@ const request = {
     id: 'openai-compatible' as const,
     label: 'OpenAI 兼容接口',
     endpoint: 'https://example.com/v1/chat/completions',
-    apiKey: 'secret',
+    apiKey: 'test-api-key',
+    appId: '',
+    secretKey: '',
     model: 'qwen-plus'
   }
 };

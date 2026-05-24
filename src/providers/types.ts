@@ -1,10 +1,12 @@
-export type ProviderKind = 'mock' | 'openai-compatible';
+export type ProviderKind = 'mock' | 'openai-compatible' | 'baidu-general';
 
 export interface ProviderConfig {
   id: ProviderKind;
   label: string;
   endpoint: string;
   apiKey: string;
+  appId: string;
+  secretKey: string;
   model: string;
 }
 

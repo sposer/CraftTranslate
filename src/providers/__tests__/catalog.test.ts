@@ -14,15 +14,28 @@ describe('mergeProviderConfig', () => {
   it('keeps provider-specific user settings', () => {
     const provider: Partial<ProviderConfig> = {
       id: 'openai-compatible',
-      apiKey: 'secret',
+      apiKey: 'test-api-key',
       model: 'qwen-plus'
     };
 
     expect(mergeProviderConfig(provider)).toMatchObject({
       id: 'openai-compatible',
       endpoint: 'https://api.openai.com/v1/chat/completions',
-      apiKey: 'secret',
+      apiKey: 'test-api-key',
       model: 'qwen-plus'
+    });
+  });
+
+  it('supports Baidu general text translation credentials', () => {
+    expect(mergeProviderConfig({
+      id: 'baidu-general',
+      appId: 'demo-app-id',
+      secretKey: 'demo-secret'
+    })).toMatchObject({
+      id: 'baidu-general',
+      endpoint: 'https://fanyi-api.baidu.com/api/trans/vip/translate',
+      appId: 'demo-app-id',
+      secretKey: 'demo-secret'
     });
   });
 });

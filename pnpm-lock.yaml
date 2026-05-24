@@ -20,6 +20,9 @@ importers:
       '@tauri-apps/plugin-store':
         specifier: ^2.4.3
         version: 2.4.3
+      js-md5:
+        specifier: ^0.8.3
+        version: 0.8.3
     devDependencies:
       '@tauri-apps/cli':
         specifier: ^2.11.2
@@ -500,6 +503,9 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
+  js-md5@0.8.3:
+    resolution: {integrity: sha512-qR0HB5uP6wCuRMrWPTrkMaev7MJZwJuuw4fnwAzRgP4J4/F8RwtodOKpGp4XpqsLBFzzgqIO42efFAyz2Et6KQ==}
+
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -968,6 +974,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  js-md5@0.8.3: {}
 
   magic-string@0.30.21:
     dependencies:

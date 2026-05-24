@@ -18,14 +18,18 @@ describe('normalizeSettings', () => {
         id: 'openai-compatible',
         label: 'OpenAI 兼容接口',
         endpoint: 'https://example.com/chat',
-        apiKey: 'secret',
+        apiKey: 'test-api-key',
+        appId: '',
+        secretKey: '',
         model: 'qwen-plus'
       }
     })).toMatchObject({
       provider: {
         id: 'openai-compatible',
         endpoint: 'https://example.com/chat',
-        apiKey: 'secret',
+        apiKey: 'test-api-key',
+        appId: '',
+        secretKey: '',
         model: 'qwen-plus'
       }
     });
