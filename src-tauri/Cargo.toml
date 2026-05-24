@@ -1,0 +1,23 @@
+[package]
+name = "crafttranslate"
+version = "0.1.0"
+description = "A lightweight Windows selection translation tool"
+authors = ["Bob"]
+edition = "2021"
+
+[lib]
+name = "crafttranslate_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.2", features = [] }
+
+[dependencies]
+tauri = { version = "2.11.2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2.3.1"
+tauri-plugin-store = "2.4.3"
+tauri-plugin-autostart = "2.5.1"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
+get-selected-text = "0.1.6"
+mouse_position = "0.1.4"
