@@ -5,7 +5,19 @@ use crate::models::SelectionPayload;
 const POPUP_OFFSET_X: i32 = 14;
 const POPUP_OFFSET_Y: i32 = 18;
 const DEFAULT_MONITOR_SIZE: PhysicalSize<u32> = PhysicalSize::new(1920, 1080);
-const DEFAULT_POPUP_SIZE: PhysicalSize<u32> = PhysicalSize::new(420, 260);
+/// Use a reasonable estimated popup size for positioning so both
+/// the loading indicator and the result fit comfortably.
+const ESTIMATED_POPUP_SIZE: PhysicalSize<u32> = PhysicalSize::new(420, 260);
+
+#[tauri::command]
+pub fn get_cursor_position() -> Result<PhysicalPosition<f64>, String> {
+    match mouse_position::mouse_position::Mouse::get_mouse_position() {
+        mouse_position::mouse_position::Mouse::Position { x, y } => {
+            Ok(PhysicalPosition::new(x as f64, y as f64))
+        }
+        _ => Err("无法获取光标位置".to_string()),
+    }
+}
 
 #[tauri::command]
 pub fn show_translation_popup(app: AppHandle, payload: SelectionPayload) -> Result<(), String> {
@@ -19,13 +31,10 @@ pub fn show_translation_popup(app: AppHandle, payload: SelectionPayload) -> Resu
         .map(|monitor| monitor.size().to_owned())
         .unwrap_or(DEFAULT_MONITOR_SIZE);
 
-    let size = popup.outer_size().unwrap_or(DEFAULT_POPUP_SIZE);
-    let position = popup_position(payload.x, payload.y, monitor_size, size);
+    let position = popup_position(payload.x, payload.y, monitor_size, ESTIMATED_POPUP_SIZE);
 
     popup.set_position(position).map_err(|err| err.to_string())?;
     popup.emit("selection-ready", payload).map_err(|err| err.to_string())?;
-    popup.show().map_err(|err| err.to_string())?;
-    popup.set_focus().map_err(|err| err.to_string())?;
     Ok(())
 }
 

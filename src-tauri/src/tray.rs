@@ -17,7 +17,7 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
     let quit = MenuItem::with_id(app, QUIT_ID, "退出 CraftTranslate", true, None::<&str>)?;
     let menu = Menu::with_items(app, &[&show_settings_item, &translate_selection, &quit])?;
 
-    TrayIconBuilder::with_id("main-tray")
+    let mut builder = TrayIconBuilder::with_id("main-tray")
         .tooltip("CraftTranslate")
         .menu(&menu)
         .show_menu_on_left_click(false)
@@ -33,8 +33,13 @@ pub fn create_tray(app: &AppHandle) -> tauri::Result<()> {
             if should_open_settings(&event) {
                 let _ = show_settings(tray.app_handle());
             }
-        })
-        .build(app)?;
+        });
+
+    if let Some(icon) = app.default_window_icon() {
+        builder = builder.icon(icon.clone());
+    }
+
+    builder.build(app)?;
 
     Ok(())
 }

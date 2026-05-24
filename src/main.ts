@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { createProvider, enabledProvider, providerTemplates } from './providers/catalog';
 import { translateText } from './providers/translator';
 import { ProviderConfig, ProviderKind } from './providers/types';
@@ -8,6 +9,24 @@ import { AppSettings, SelectionPayload } from './types';
 import { escapeAttribute, escapeHtml } from './ui/html';
 import { formatHotkey } from './ui/hotkey';
 import './styles.css';
+
+const LANGUAGES = [
+  { value: 'auto', label: '自动检测' },
+  { value: '中文', label: '中文' },
+  { value: '英语', label: 'English' },
+  { value: '日语', label: '日本語' },
+  { value: '韩语', label: '한국어' },
+  { value: '法语', label: 'Français' },
+  { value: '德语', label: 'Deutsch' },
+  { value: '西班牙语', label: 'Español' },
+  { value: '俄语', label: 'Русский' },
+];
+
+function languageOptions(selected: string): string {
+  return LANGUAGES.map((lang) =>
+    `<option value="${lang.value}" ${lang.value === selected ? 'selected' : ''}>${escapeHtml(lang.label)}</option>`
+  ).join('');
+}
 
 const rootElement = document.querySelector<HTMLDivElement>('#app');
 if (!rootElement) {
@@ -31,7 +50,6 @@ init().catch((error) => {
 async function init() {
   settings = ensureProvider(await loadSettings());
   if (location.hash === '#/popup') {
-    renderPopup();
     await listen<SelectionPayload>('selection-ready', async (event) => {
       selectionPayload = event.payload;
       await runTranslation(event.payload.text);
@@ -152,19 +170,25 @@ function renderLanguageRow(): string {
       <div class="row">
         <div class="row-main">
           <div class="title">源语言</div>
-          <div class="sub">auto 表示自动检测</div>
+          <div class="sub">选中文本的原始语言</div>
         </div>
         <div class="row-ctl">
-          <input class="text-in" name="sourceLanguage" value="${escapeAttribute(settings.sourceLanguage)}" style="width:160px" />
+          <select class="text-in" name="sourceLanguage" style="width:160px">
+            ${languageOptions(settings.sourceLanguage)}
+          </select>
         </div>
       </div>
       <div class="row">
         <div class="row-main">
           <div class="title">目标语言</div>
-          <div class="sub">百度支持中文、英语、日语、韩语</div>
+          <div class="sub">翻译结果的语言</div>
         </div>
         <div class="row-ctl">
-          <input class="text-in" name="targetLanguage" value="${escapeAttribute(settings.targetLanguage)}" style="width:160px" />
+          <select class="text-in" name="targetLanguage" style="width:160px">
+            ${LANGUAGES.filter((lang) => lang.value !== 'auto').map((lang) =>
+              `<option value="${lang.value}" ${lang.value === settings.targetLanguage ? 'selected' : ''}>${escapeHtml(lang.label)}</option>`
+            ).join('')}
+          </select>
         </div>
       </div>
       <div class="row">
@@ -258,14 +282,14 @@ function bindSettingsEvents() {
     }
   });
 
-  document.querySelector<HTMLInputElement>('[name="sourceLanguage"]')?.addEventListener('change', (event) => {
-    const value = (event.currentTarget as HTMLInputElement).value.trim();
+  document.querySelector<HTMLSelectElement>('[name="sourceLanguage"]')?.addEventListener('change', (event) => {
+    const value = (event.currentTarget as HTMLSelectElement).value;
     settings = { ...settings, sourceLanguage: value };
     autoSave('源语言已更新');
   });
 
-  document.querySelector<HTMLInputElement>('[name="targetLanguage"]')?.addEventListener('change', (event) => {
-    const value = (event.currentTarget as HTMLInputElement).value.trim();
+  document.querySelector<HTMLSelectElement>('[name="targetLanguage"]')?.addEventListener('change', (event) => {
+    const value = (event.currentTarget as HTMLSelectElement).value;
     settings = { ...settings, targetLanguage: value };
     autoSave('目标语言已更新');
   });
@@ -503,39 +527,169 @@ async function removeProvider(providerId: string) {
 
 let closeTimer: ReturnType<typeof setTimeout> | null = null;
 
-function renderPopup() {
-  const sourceText = selectionPayload?.text ?? '等待划词…';
+async function positionNearCursor() {
+  try {
+    const pos = await invoke<{ x: number; y: number }>('get_cursor_position');
+    const { PhysicalPosition } = await import('@tauri-apps/api/dpi');
+    await getCurrentWindow().setPosition(new PhysicalPosition(pos.x + 14, pos.y + 18));
+  } catch (err) {
+    console.error('positionNearCursor failed:', err);
+  }
+}
+
+async function renderLoadingIndicator() {
+  // Hide first to prevent flash when re-triggering while previous popup is visible
+  try { await getCurrentWindow().hide(); } catch { /* ignore */ }
+
+  document.body.style.background = 'transparent';
+  document.documentElement.style.overflow = 'hidden';
+  document.body.style.overflow = 'hidden';
+
+  root.innerHTML = `
+    <main class="loading-indicator">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+    </main>
+  `;
+
+  try {
+    const { PhysicalSize } = await import('@tauri-apps/api/dpi');
+    await getCurrentWindow().setSize(new PhysicalSize(68, 36));
+    await positionNearCursor();
+    await getCurrentWindow().show();
+    await getCurrentWindow().setFocus();
+  } catch (err) {
+    console.error('renderLoadingIndicator failed:', err);
+  }
+}
+
+function renderPopupResult() {
+  const sourceLabel = LANGUAGES.find((l) => l.value === settings.sourceLanguage)?.label ?? settings.sourceLanguage;
+
+  document.body.style.background = 'transparent';
+  document.body.style.borderRadius = '14px';
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.borderRadius = '14px';
+  document.documentElement.style.overflow = 'hidden';
+
   root.innerHTML = `
     <main class="popup-card">
-      <header data-tauri-drag-region>
-        <div>
-          <span class="popup-brand">CraftTranslate</span>
-          <strong>${escapeHtml(settings.targetLanguage)}</strong>
+      <header id="popup-header">
+        <div class="popup-lang-pair">
+          <span class="popup-lang-label">${escapeHtml(sourceLabel)}</span>
+          <span class="popup-lang-arrow">→</span>
+          <select class="popup-lang-select" id="popup-target">
+            ${LANGUAGES.filter((l) => l.value !== 'auto').map((l) =>
+              `<option value="${l.value}" ${l.value === settings.targetLanguage ? 'selected' : ''}>${escapeHtml(l.label)}</option>`
+            ).join('')}
+          </select>
         </div>
-        <button class="icon-btn" id="close-popup" aria-label="关闭">×</button>
+        <div class="popup-header-actions">
+          ${selectionPayload?.text
+            ? `<button class="icon-btn" id="copy-source" aria-label="复制原文" title="复制原文">📋</button>`
+            : ''}
+          <button class="icon-btn popup-close" id="close-popup" aria-label="关闭">×</button>
+        </div>
       </header>
-      <section class="source-text">${escapeHtml(sourceText)}</section>
+
       <section class="translation ${isTranslating ? 'loading' : ''}">
-        ${isTranslating ? '翻译中…' : escapeHtml(errorMessage || translation || '选中文本后按热键开始翻译')}
+        <div class="translation-content">${escapeHtml(errorMessage || translation || '')}</div>
+        ${!isTranslating && translation && !errorMessage
+          ? `<button class="icon-btn copy-btn" id="copy-translation" aria-label="复制译文" title="复制译文">📋</button>`
+          : ''}
       </section>
     </main>
   `;
 
+  bindPopupEvents();
+  startPopupCloseTimer();
+  fitPopupSize();
+}
+
+function bindPopupEvents() {
   document.querySelector<HTMLButtonElement>('#close-popup')?.addEventListener('click', hidePopup);
 
-  // Auto-close: 5s after translation completes, hover resets
-  if (!isTranslating) {
-    startPopupCloseTimer();
+  document.querySelector<HTMLDivElement>('#popup-header')?.addEventListener('mousedown', (event) => {
+    if ((event.target as HTMLElement).closest('button, select')) {
+      return;
+    }
+    getCurrentWindow().startDragging();
+  });
+
+  document.querySelector<HTMLSelectElement>('#popup-target')?.addEventListener('change', async (event) => {
+    const newTarget = (event.currentTarget as HTMLSelectElement).value;
+    settings = { ...settings, targetLanguage: newTarget };
+    await saveSettings(settings);
+    if (selectionPayload) {
+      runTranslation(selectionPayload.text);
+    }
+  });
+
+  document.querySelector<HTMLButtonElement>('#copy-source')?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(selectionPayload?.text ?? '');
+    } catch { /* ignore */ }
+  });
+
+  document.querySelector<HTMLButtonElement>('#copy-translation')?.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(translation);
+    } catch { /* ignore */ }
+  });
+}
+
+async function fitPopupSize() {
+  const card = document.querySelector<HTMLDivElement>('.popup-card');
+  if (!card) return;
+
+  const MAX_W = 720;
+  const MAX_H = 640;
+
+  const prevOverflow = card.style.overflow;
+  const prevMinHeight = card.style.minHeight;
+  const prevMaxWidth = card.style.maxWidth;
+  card.style.overflow = 'visible';
+  card.style.minHeight = '0';
+  card.style.maxWidth = `${MAX_W}px`;
+
+  await new Promise((resolve) => requestAnimationFrame(resolve));
+
+  const rect = card.getBoundingClientRect();
+  const contentW = Math.ceil(rect.width);
+  const contentH = Math.ceil(rect.height);
+
+  const w = Math.min(Math.max(180, contentW), MAX_W);
+  const h = Math.min(Math.max(80, contentH), MAX_H);
+  const needsScroll = contentH > MAX_H;
+
+  card.style.overflow = prevOverflow;
+  card.style.minHeight = prevMinHeight;
+  card.style.maxWidth = prevMaxWidth;
+  card.classList.toggle('scrolls', needsScroll);
+
+  try {
+    const { PhysicalSize } = await import('@tauri-apps/api/dpi');
+    await getCurrentWindow().setSize(new PhysicalSize(w, h));
+    await positionNearCursor();
+  } catch {
+    // ignore
   }
 }
 
 function startPopupCloseTimer() {
   clearCloseTimer();
+  // Start countdown: 5s from now
   closeTimer = setTimeout(() => invoke('hide_translation_popup'), 5000);
 
   const card = document.querySelector<HTMLDivElement>('.popup-card');
-  card?.addEventListener('mouseenter', startPopupCloseTimer);
-  card?.addEventListener('mouseleave', () => {
+  if (!card) return;
+
+  card.addEventListener('mouseenter', () => {
+    clearCloseTimer();
+  });
+
+  card.addEventListener('mouseleave', () => {
     clearCloseTimer();
     closeTimer = setTimeout(() => invoke('hide_translation_popup'), 5000);
   });
@@ -550,6 +704,11 @@ function clearCloseTimer() {
 
 function hidePopup() {
   clearCloseTimer();
+  document.body.style.background = '';
+  document.body.style.borderRadius = '';
+  document.body.style.overflow = '';
+  document.documentElement.style.borderRadius = '';
+  document.documentElement.style.overflow = '';
   invoke('hide_translation_popup');
 }
 
@@ -558,7 +717,9 @@ async function runTranslation(text: string) {
   isTranslating = true;
   translation = '';
   errorMessage = '';
-  renderPopup();
+
+  await renderLoadingIndicator();
+
   try {
     const provider = enabledProvider(settings.providers);
     if (!provider) {
@@ -574,6 +735,6 @@ async function runTranslation(text: string) {
     errorMessage = String(error);
   } finally {
     isTranslating = false;
-    renderPopup();
+    renderPopupResult();
   }
 }

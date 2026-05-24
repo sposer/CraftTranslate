@@ -21,6 +21,7 @@ pub fn run() {
             autostart::get_autostart_enabled,
             autostart::set_autostart,
             hotkey::register_translate_hotkey,
+            popup::get_cursor_position,
             popup::hide_translation_popup,
             popup::show_translation_popup,
             selection::get_current_selection,
