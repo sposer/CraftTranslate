@@ -1,4 +1,5 @@
 import { md5 } from 'js-md5';
+import { fetch } from '@tauri-apps/plugin-http';
 import { TranslationRequest } from './types';
 
 interface BaiduTranslateResponse {
@@ -24,6 +25,7 @@ export function mapLanguageToBaidu(language: string): string {
     英语: 'en',
     en: 'en',
     japanese: 'jp',
+    日本語: 'jp',
     日文: 'jp',
     日语: 'jp',
     ja: 'jp',

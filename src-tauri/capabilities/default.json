@@ -12,6 +12,16 @@
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-unregister-all",
-    "store:default"
+    "store:allow-get",
+    "store:allow-load",
+    "store:allow-save",
+    "store:allow-set",
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://**" },
+        { "url": "http://**" }
+      ]
+    }
   ]
 }

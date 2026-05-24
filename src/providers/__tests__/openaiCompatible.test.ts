@@ -6,13 +6,15 @@ const request = {
   sourceLanguage: 'auto',
   targetLanguage: '中文',
   provider: {
-    id: 'openai-compatible' as const,
+    id: 'openai-1',
+    kind: 'openai-compatible' as const,
     label: 'OpenAI 兼容接口',
     endpoint: 'https://example.com/v1/chat/completions',
     apiKey: 'test-api-key',
     appId: '',
     secretKey: '',
-    model: 'qwen-plus'
+    model: 'qwen-plus',
+    enabled: true
   }
 };
 

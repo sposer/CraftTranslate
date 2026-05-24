@@ -5,7 +5,8 @@ export interface AppSettings {
   launchOnStartup: boolean;
   sourceLanguage: string;
   targetLanguage: string;
-  provider: ProviderConfig;
+  activeProviderId: string;
+  providers: ProviderConfig[];
 }
 
 export interface SelectionPayload {

@@ -21,3 +21,4 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 get-selected-text = "0.1.6"
 mouse_position = "0.1.4"
+tauri-plugin-http = "2.5.9"

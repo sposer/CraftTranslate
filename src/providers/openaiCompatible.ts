@@ -1,3 +1,4 @@
+import { fetch } from '@tauri-apps/plugin-http';
 import { ChatCompletionResponse, TranslationRequest } from './types';
 
 export function buildChatCompletionBody(request: TranslationRequest) {
@@ -27,7 +28,7 @@ export function parseChatCompletion(data: ChatCompletionResponse): string {
 
 export async function translateWithOpenAiCompatible(request: TranslationRequest): Promise<string> {
   if (!request.provider.apiKey.trim()) {
-    throw new Error('请先在设置里填写 API Key，或切换到本地演示提供者');
+    throw new Error('请先在设置里填写 API Key');
   }
   if (!request.provider.endpoint.trim()) {
     throw new Error('请先填写翻译接口地址');

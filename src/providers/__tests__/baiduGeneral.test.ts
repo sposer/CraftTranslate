@@ -6,13 +6,15 @@ const request = {
   sourceLanguage: 'auto',
   targetLanguage: '中文',
   provider: {
-    id: 'baidu-general' as const,
+    id: 'baidu-1',
+    kind: 'baidu-general' as const,
     label: '百度通用文本翻译',
     endpoint: 'https://fanyi-api.baidu.com/api/trans/vip/translate',
     apiKey: '',
     appId: 'demo-app-id',
     secretKey: 'demo-secret',
-    model: ''
+    model: '',
+    enabled: true
   }
 };
 
